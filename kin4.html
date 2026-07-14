@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <!-- Viewport supports both Mobile and Desktop -->
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>WhatsApp Multi-Device</title>
+    <style>
+        :root {
+            --wa-green: #008069;
+            --wa-light-green: #00a884;
+            --wa-bubble-out: #dcf8c6;
+            --wa-bubble-in: #ffffff;
+            --wa-bg: #E5DDD5;
+            --wa-white: #ffffff;
+            --wa-gray-light: #f0f2f5;
+            --wa-text-dark: #111b21;
+            --wa-text-gray: #54656f;
+            --wa-blue-tick: #53bdeb;
+        }
+
+        /* --- Reset & Base --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background: var(--wa-gray-light);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- Main App Wrapper --- */
+        #app-frame {
+            display: flex;
+            flex-direction: column;
+            /* Mobile Default */
+            height: 100dvh;
+            height: 100vh;
+            max-width: 1600px;
+            /* Desktop limit */
+            margin: 0 auto;
+            background: var(--wa-white);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        svg {
+            fill: currentColor;
+        }
+
+        /* --- Login Screen --- */
+        #login-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
+
+        input.wa-input {
+            width: 100%;
+            padding: 16px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            outline: none;
+            background: #fff;
+            -webkit-appearance: none;
+        }
+
+        input.wa-input:focus {
+            border-color: var(--wa-green);
+        }
+
+        button.wa-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--wa-green);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            touch-action: manipulation;
+        }
+
+        /* --- Header (Common) --- */
+        .wa-header {
+            background: var(--wa-green);
+            color: white;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+            flex-shrink: 0;
+            z-index: 50;
+            touch-action: none;
+        }
+
+        .header-left,
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-center {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            margin-left: 5px;
+        }
+
+        .header-name {
+            font-weight: 600;
+            font-size: 18px;
+            text-align: left;
+            line-height: 1.2;
+        }
+
+        .header-status {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: left;
+            margin-top: 2px;
+            min-height: 18px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ddd;
+            object-fit: cover;
+        }
+
+        .icon-btn {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            color: white;
+            touch-action: manipulation;
+        }
+
+        /* --- Sidebar (Chat List) --- */
+        #sidebar {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            z-index: 10;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: transform 0.2s;
+        }
+
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+
+        .chat-row {
+            display: flex;
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            align-items: center;
+            touch-action: manipulation;
+            transition: background 0.1s;
+        }
+
+        .chat-row:active,
+        .chat-row:hover {
+            background: #f5f6f6;
+        }
+
+        .chat-info {
+            flex: 1;
+            overflow: hidden;
+            margin-left: 15px;
+        }
+
+        .chat-name {
+            font-weight: 500;
+            color: var(--wa-text-dark);
+            font-size: 17px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .last-msg {
+            font-size: 14px;
+            color: var(--wa-text-gray);
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .time {
+            font-size: 12px;
+            color: var(--wa-text-gray);
+            font-weight: normal;
+            margin-left: 10px;
+        }
+
+        /* --- Bottom Nav (Mobile Only) --- */
+        #bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: #fff;
+            height: 56px;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: var(--wa-text-gray);
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            color: var(--wa-green);
+            font-weight: bold;
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 2px;
+        }
+
+        /* --- Main Chat Room --- */
+        #main-chat {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--wa-bg);
+            background-image: url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png");
+            background-blend-mode: overlay;
+            transform: translateX(100%);
+            transition: transform 0.2s ease-out;
+            display: flex;
+            flex-direction: column;
+            z-index: 20;
+        }
+
+        #main-chat.active {
+            transform: translateX(0);
+        }
+
+        /* --- Messages Area --- */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            padding: 10px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        /* --- Bubbles --- */
+        .msg {
+            max-width: 75%;
+            padding: 6px 10px 8px 10px;
+            border-radius: 8px;
+            font-size: 14.5px;
+            line-height: 19px;
+            position: relative;
+            word-wrap: break-word;
+            box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+            margin-bottom: 2px;
+            touch-action: manipulation;
+        }
+
+        .msg-in {
+            align-self: flex-start;
+            background: var(--wa-bubble-in);
+            border-top-left-radius: 0;
+        }
+
+        .msg-in::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -10px;
+            width: 10px;
+            height: 13px;
+            background: linear-gradient(to top right, transparent 50%, var(--wa-bubble-in) 50%);
+        }
+
+        .msg-out {
+            align-self: flex-end;
+            background: var(--wa-bubble-out);
+            border-top-right-radius: 0;
+        }
+
+        .msg-out::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: -10px;
+            width: 10px;
+            height: 13px;
+            background: linear-gradient(to top left, transparent 50%, var(--wa-bubble-out) 50%);
+        }
+
+        .msg-sys {
+            align-self: center;
+            background: rgba(225, 245, 254, 0.9);
+            color: #0f507e;
+            border-radius: 8px;
+            font-size: 11px;
+            padding: 4px 12px;
+            text-align: center;
+            margin: 8px 0;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- Message Meta --- */
+        .msg-meta {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 4px;
+            margin-top: -2px;
+            float: right;
+            margin-left: 8px;
+        }
+
+        .msg-time {
+            font-size: 11px;
+            color: rgba(0, 0, 0, 0.45);
+            margin-top: 5px;
+        }
+
+        .tick-icon {
+            width: 16px;
+            height: 16px;
+            margin-top: 4px;
+            fill: #8696a0;
+        }
+
+        .tick-blue {
+            fill: var(--wa-blue-tick);
+        }
+
+        /* --- Input Area --- */
+        .input-area {
+            background: var(--wa-gray-light);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            flex-shrink: 0;
+            z-index: 100;
+            min-height: 60px;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            background: #fff;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            min-height: 42px;
+            border: 1px solid #fff;
+        }
+
+        input.wa-chat-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            background: transparent;
+            color: var(--wa-text-dark);
+            padding: 8px 0;
+        }
+
+        .input-icon {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            color: #54656f;
+            touch-action: manipulation;
+        }
+
+        /* --- Config Modal --- */
+        #config-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal {
+            background: white;
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 12px;
+        }
+
+        .modal h3 {
+            color: var(--wa-green);
+            margin-bottom: 10px;
+        }
+
+        .modal textarea {
+            width: 100%;
+            height: 80px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 10px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+            background: #f0f2f5;
+            border-radius: 4px;
+        }
+
+        .modal p {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            z-index: 3000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            text-align: center;
+        }
+
+        #toast.visible {
+            opacity: 1;
+        }
+
+        /* --- DESKTOP / MULTI-DEVICE LAYOUT --- */
+        @media (min-width: 769px) {
+            #app-frame {
+                flex-direction: row;
+                /* Side by Side */
+            }
+
+            #sidebar {
+                position: relative;
+                width: 30%;
+                min-width: 320px;
+                max-width: 450px;
+                border-right: 1px solid #e9edef;
+                transform: none;
+                height: 100%;
+            }
+
+            #main-chat {
+                position: relative;
+                flex: 1;
+                transform: none;
+                height: 100%;
+                /* Hide until chat is selected on desktop? No, standard WA shows empty state or last chat. 
+                   For simplicity, we just hide if no active chat initially, or show placeholder */
+            }
+
+            .back-btn {
+                display: none !important;
+            }
+
+            #bottom-nav {
+                display: none;
+            }
+
+            /* If no active session, show empty state for chat area */
+            #main-chat:not(.active) {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="toast"></div>
+
+    <div id="app-frame">
+
+        <!-- Config Modal -->
+        <div id="config-modal" class="hidden">
+            <div class="modal">
+                <h3>Settings</h3>
+                <p>Configured for <strong>taher-project-a5a07</strong>.<br>Ensure Database Rules are <code>true</code>.
+                </p>
+                <textarea id="config-json" readonly></textarea>
+                <button class="wa-btn" onclick="app.closeConfig()">Close</button>
+            </div>
+        </div>
+
+        <!-- Login Screen -->
+        <div id="login-screen">
+            <div style="width: 100%; max-width: 300px;">
+                <div
+                    style="color: var(--wa-green); margin-bottom: 20px; width: 80px; height: 80px; display: inline-block;">
+                    <svg viewBox="0 0 24 24">
+                        <path fill="currentColor"
+                            d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 4C14.21 4 16 5.79 16 8C16 10.21 14.21 12 12 12C9.79 12 8 10.21 8 8C8 5.79 9.79 4 12 4ZM12 20C9.33 20 6.93 18.84 5.14 17C5.46 15.8 8.5 14.5 12 14.5C15.5 14.5 18.54 15.8 18.86 17C17.07 18.84 14.67 20 12 20Z" />
+                    </svg>
+                </div>
+                <h2 style="color: var(--wa-green); margin-bottom: 5px;">WhatsApp</h2>
+                <p style="color:#777; font-size:13px; margin-bottom: 20px;">Family Messenger</p>
+
+                <input type="text" id="username" class="wa-input" placeholder="Your Name">
+                <input type="text" id="room-code" class="wa-input" placeholder="Family Code"
+                    style="text-transform: uppercase;">
+                <button class="wa-btn" onclick="app.login()">Start Chatting</button>
+                <button class="wa-btn" style="background:transparent; color:var(--wa-green); margin-top:10px;"
+                    onclick="app.showConfig()">Config</button>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside id="sidebar">
+            <div class="wa-header">
+                <div class="header-left">
+                    <div style="font-weight: 600; font-size: 22px;">Chats</div>
+                </div>
+                <div class="header-right">
+                    <svg class="icon-btn" viewBox="0 0 24 24">
+                        <path
+                            d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z" />
+                    </svg>
+                    <svg class="icon-btn" onclick="app.showConfig()" viewBox="0 0 24 24">
+                        <path
+                            d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="chat-list" id="chat-list">
+                <div class="chat-row" onclick="app.openChat()">
+                    <img src="https://picsum.photos/seed/family/100/100" class="avatar">
+                    <div class="chat-info">
+                        <div class="chat-name">
+                            Family Group
+                            <span class="time" id="preview-time">--:--</span>
+                        </div>
+                        <div class="last-msg" id="preview-msg">Tap to chat</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Nav (Mobile) -->
+            <div id="bottom-nav">
+                <div class="nav-item active">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path fill="currentColor"
+                            d="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M20,16H6L4,18V4H20V16Z" />
+                    </svg>
+                    <span>Chats</span>
+                </div>
+                <div class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path fill="currentColor"
+                            d="M16.75,13.96C17,14.09 17.16,14.16 17.21,14.26C17.27,14.37 17.25,14.46 17.18,14.53L17.1,14.61L15.47,16.24C15.38,16.33 15.26,16.36 15.17,16.33C15.08,16.29 15.02,16.22 15,16.13L15.07,16.05L16.05,15.07L16.75,13.96M13.5,18C14.06,18 14.61,17.93 15.14,17.79L16.5,19.15C15.53,19.69 14.5,20 13.5,20C12.12,20 10.85,19.47 9.88,18.5L10.59,17.79C11.27,17.92 11.96,18 12.5,18H13.5M13.5,6C12.12,6 10.85,6.53 9.88,7.5L10.59,8.21C11.53,7.42 12.65,6.93 13.87,7.01L15.3,5.58C14.73,5.22 14.08,5 13.5,5V6M18.5,13.5C18.5,14.88 17.97,16.15 17,17.12L16.29,16.41C17.08,15.47 17.57,14.35 17.49,13.13L18.92,11.7C19.28,12.27 19.5,12.92 19.5,13.5H18.5M19.64,10.36L18.21,11.79C17.86,10.65 17.15,9.68 16.24,8.76L16.95,8.05C18.14,9.23 19.05,10.72 19.64,10.36M21.54,3.46L20.12,2.05L5.62,16.54L7.04,17.96L21.54,3.46Z" />
+                    </svg>
+                    <span>Status</span>
+                </div>
+                <div class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path fill="currentColor"
+                            d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z" />
+                    </svg>
+                    <span>Calls</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Room -->
+        <main id="main-chat">
+            <div class="wa-header">
+                <div class="header-left">
+                    <div class="back-btn" onclick="app.closeChat()" style="padding-right:10px;">
+                        <svg style="width:24px;height:24px" viewBox="0 0 24 24">
+                            <path fill="white"
+                                d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z" />
+                        </svg>
+                    </div>
+                    <img src="https://picsum.photos/seed/family/100/100" class="avatar"
+                        style="margin-right: 10px; width: 35px; height: 35px;">
+                    <div class="header-center">
+                        <div class="header-name">Family Group</div>
+                        <div class="header-status" id="chat-status">Family members</div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <svg class="icon-btn" viewBox="0 0 24 24">
+                        <path
+                            d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z" />
+                    </svg>
+                    <svg class="icon-btn" viewBox="0 0 24 24">
+                        <path
+                            d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="messages" id="msg-container">
+                <!-- Messages -->
+            </div>
+
+            <div class="input-area">
+                <svg class="input-icon" viewBox="0 0 24 24">
+                    <path fill="currentColor"
+                        d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,14C13.75,14 15.29,13.19 16.3,11.94L17.72,13.36C16.33,15 14.29,16 12,16C9.71,16 7.67,15 6.28,13.36L7.7,11.94C8.71,13.19 10.25,14 12,14Z" />
+                </svg>
+
+                <div class="input-wrapper">
+                    <input type="text" id="msg-input" class="wa-chat-input" placeholder="Message" autocomplete="off">
+                </div>
+
+                <svg class="input-icon" onclick="app.send()" id="send-icon" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M2,21L23,12L2,3V10L17,12L2,14V21Z" />
+                </svg>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // --- CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBWs9gfFYpr66U-OjGzRyr09bfyi1kD6gU",
+            authDomain: "taher-project-a5a07.firebaseapp.com",
+            databaseURL: "https://taher-project-a5a07-default-rtdb.firebaseio.com",
+            projectId: "taher-project-a5a07",
+            storageBucket: "taher-project-a5a07.firebasestorage.app",
+            messagingSenderId: "73146251474",
+            appId: "1:73146251474:web:76259c85c3af69cbcb550b"
+        };
+
+        const app = {
+            db: null,
+            mode: 'cloud',
+            user: null,
+            roomCode: null,
+            localMessages: [],
+            msgListener: null,
+            typingListener: null,
+            typingTimeout: null,
+
+            init() {
+                this.initFirebase(firebaseConfig);
+
+                // Mobile Viewport
+                if (window.visualViewport) {
+                    window.visualViewport.addEventListener('resize', () => {
+                        document.documentElement.style.setProperty('--vh', `${window.visualViewport.height * 0.01}px`);
+                    });
+                }
+
+                const session = sessionStorage.getItem('kinchat_session');
+                if (session) {
+                    const data = JSON.parse(session);
+                    this.user = data.user;
+                    this.roomCode = data.room;
+                    this.enterApp();
+                }
+
+                // Setup Typing Input Listener
+                document.getElementById('msg-input').addEventListener('input', () => {
+                    this.setTyping(true);
+                });
+            },
+
+            /* Config */
+            showConfig() {
+                document.getElementById('config-json').value = JSON.stringify(firebaseConfig, null, 2);
+                document.getElementById('config-modal').classList.remove('hidden');
+            },
+            closeConfig() {
+                document.getElementById('config-modal').classList.add('hidden');
+            },
+
+            initFirebase(config) {
+                try {
+                    if (!firebase.apps.length) firebase.initializeApp(config);
+                    this.db = firebase.database();
+                    this.mode = 'cloud';
+                } catch (e) { this.mode = 'local'; }
+            },
+
+            /* --- TYPING INDICATOR LOGIC --- */
+            setTyping(isTyping) {
+                if (this.mode === 'cloud' && this.db && this.user) {
+                    // Debounce: Stop typing after 2 seconds
+                    clearTimeout(this.typingTimeout);
+
+                    const typingRef = this.db.ref(`rooms/${this.roomCode}/typing/${this.user.id}`);
+                    typingRef.set(isTyping ? { name: this.user.name, time: Date.now() } : null);
+
+                    if (isTyping) {
+                        this.typingTimeout = setTimeout(() => {
+                            typingRef.set(null); // Stop typing
+                        }, 2000);
+                    }
+                }
+            },
+
+            listenToTyping() {
+                if (this.mode === 'cloud' && this.db && this.user) {
+                    const typingRef = this.db.ref(`rooms/${this.roomCode}/typing`);
+                    this.typingListener = typingRef;
+
+                    typingRef.on('value', (snap) => {
+                        const data = snap.val();
+                        const statusEl = document.getElementById('chat-status');
+
+                        if (!data) {
+                            statusEl.innerText = "Family members";
+                            return;
+                        }
+
+                        // Filter out myself and old typing (older than 3s)
+                        const typers = Object.values(data).filter(t =>
+                            t.name !== this.user.name && (Date.now() - t.time < 3000)
+                        );
+
+                        if (typers.length > 0) {
+                            // Show "Name is typing..."
+                            const name = typers[0].name;
+                            statusEl.innerText = `${name} is typing...`;
+                            statusEl.style.color = "rgba(255,255,255,1)";
+                        } else {
+                            statusEl.innerText = "Family members";
+                            statusEl.style.color = "rgba(255,255,255,0.8)";
+                        }
+                    });
+                }
+            },
+
+            /* Auth */
+            login() {
+                const name = document.getElementById('username').value.trim();
+                const code = document.getElementById('room-code').value.trim().toUpperCase();
+                if (!name || !code) return this.toast("Enter Name and Code");
+
+                this.user = {
+                    id: 'u_' + Date.now(),
+                    name: name,
+                    avatar: `https://picsum.photos/seed/${name}/200/200`
+                };
+                this.roomCode = code;
+                sessionStorage.setItem('kinchat_session', JSON.stringify({ user: this.user, room: this.roomCode }));
+
+                this.sendSystemMessage(`${name} joined the chat.`);
+                this.enterApp();
+            },
+
+            enterApp() {
+                document.getElementById('login-screen').classList.add('hidden');
+
+                // Messages Listener
+                if (this.mode === 'cloud' && this.db) {
+                    if (this.msgListener) this.msgListener.off();
+                    const ref = this.db.ref(`rooms/${this.roomCode}/messages`);
+                    this.msgListener = ref;
+
+                    ref.limitToLast(50).on('value', (snap) => {
+                        const data = snap.val();
+                        const msgs = data ? Object.keys(data).map(k => data[k]) : [];
+                        this.renderMessages(msgs);
+                    });
+
+                    // Typing Listener
+                    this.listenToTyping();
+
+                } else {
+                    this.renderMessages(this.localMessages);
+                }
+            },
+
+            /* Messaging */
+            send() {
+                const input = document.getElementById('msg-input');
+                const text = input.value.trim();
+                if (!text) return;
+
+                // Stop typing indicator
+                this.setTyping(false);
+
+                this.pushMessage({
+                    id: Date.now(),
+                    text: text,
+                    senderId: this.user.id,
+                    senderName: this.user.name,
+                    timestamp: Date.now(),
+                    type: 'text'
+                });
+                input.value = '';
+                input.focus();
+            },
+
+            sendSystemMessage(text) {
+                this.pushMessage({ id: Date.now(), text: text, type: 'system', timestamp: Date.now() });
+            },
+
+            pushMessage(msg) {
+                if (this.mode === 'cloud' && this.db) {
+                    this.db.ref(`rooms/${this.roomCode}/messages`).push(msg);
+                } else {
+                    this.localMessages.push(msg);
+                    this.renderMessages(this.localMessages);
+                }
+            },
+
+            scrollToBottom() {
+                const container = document.getElementById('msg-container');
+                if (container) container.scrollTop = container.scrollHeight;
+            },
+
+            renderMessages(messages) {
+                const container = document.getElementById('msg-container');
+                container.innerHTML = '';
+                messages.sort((a, b) => a.timestamp - b.timestamp);
+
+                messages.forEach(msg => {
+                    const el = document.createElement('div');
+                    if (msg.type === 'system') {
+                        el.className = 'msg msg-sys';
+                        el.innerText = msg.text;
+                    } else {
+                        const isMe = msg.senderId === this.user.id;
+                        el.className = `msg ${isMe ? 'msg-out' : 'msg-in'}`;
+
+                        const nameHtml = !isMe ? `<div style="font-size:12px; font-weight:bold; color:#d85c28; margin-bottom:2px;">${msg.senderName}</div>` : '';
+
+                        const tickHtml = isMe
+                            ? `<svg class="tick-icon tick-blue" viewBox="0 0 24 24"><path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"/></svg>`
+                            : '';
+
+                        const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                        el.innerHTML = `
+                            ${nameHtml}
+                            ${msg.text}
+                            <div class="msg-meta">
+                                <span class="msg-time">${time}</span>
+                                ${tickHtml}
+                            </div>
+                        `;
+                    }
+                    container.appendChild(el);
+                });
+
+                // Update Sidebar Preview
+                if (messages.length) {
+                    const last = messages[messages.length - 1];
+                    document.getElementById('preview-msg').innerText = last.type === 'system' ? last.text : `${last.senderName}: ${last.text}`;
+                    document.getElementById('preview-time').innerText = new Date(last.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
+
+                this.scrollToBottom();
+            },
+
+            /* Navigation */
+            openChat() {
+                document.getElementById('main-chat').classList.add('active');
+                setTimeout(() => this.scrollToBottom(), 50);
+            },
+            closeChat() { document.getElementById('main-chat').classList.remove('active'); },
+            toast(msg) {
+                const t = document.getElementById("toast");
+                t.innerText = msg; t.classList.add("visible");
+                setTimeout(() => t.classList.remove("visible"), 3000);
+            }
+        };
+
+        app.init();
+    </script>
+</body>
+
+</html>
